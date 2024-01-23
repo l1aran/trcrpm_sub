@@ -8,8 +8,8 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from cgpm.crosscat.engine import Engine
-from cgpm.utils.parallel_map import parallel_map
+from cgpm.src.crosscat.engine import Engine
+from cgpm.src.utils.parallel_map import parallel_map
 
 
 class Hierarchical_TRCRP_Mixture(object):
@@ -61,7 +61,7 @@ class Hierarchical_TRCRP_Mixture(object):
         # Derived attributes.
         self.window = self.lag + 1
         self.variables_lagged = list(itertools.chain.from_iterable([
-            ['%s.lag.%d' % (varname, i,) for i in xrange(self.lag, -1, -1)]
+            ['%s.lag.%d' % (varname, i,) for i in range(self.lag, -1, -1)]
             for varname in self.variables
         ]))
         self.variable_index = {var: i for i, var in enumerate(self.variables)}
@@ -285,7 +285,8 @@ class Hierarchical_TRCRP_Mixture(object):
         """Incorporate fresh sample ids as new cgpm rows."""
         new_timepoints = frame.index[~frame.index.isin(self.dataset.index)]
         new_observations = frame[self.variables].loc[new_timepoints]
-        self.dataset = self.dataset.append(new_observations)
+        self.dataset = pd.concat([self.dataset, new_observations])
+        # self.dataset = self.dataset.append(new_observations)
         new_rows = [self._get_timepoint_row(t) for t in new_timepoints]
         if self.initialized:
             outputs = self.engine.states[0].outputs
@@ -407,7 +408,7 @@ class Hierarchical_TRCRP_Mixture(object):
 
     def _variable_to_window_indexes(self, variable):
         """Convert variable name to list of cgpm output indexes in its window."""
-        return [self._variable_to_index(variable, l) for l in xrange(self.window)]
+        return [self._variable_to_index(variable, l) for l in range(self.window)]
 
     def _variable_indexes(self):
         """Return list of cgpm output indexes, one per variable at lag 0."""
@@ -574,14 +575,16 @@ class TRCRP_Mixture(Hierarchical_TRCRP_Mixture):
 # These functions must be defined top-level in the module to work with
 # parallel_map.
 
-def _simulate_ancestral_mp((state, timepoints, variables, rowids, targets,
-        constraints, parents, variable_to_index, nsamples)):
-    """Simulate timepoints and variables ancestrally (multiple samples)."""
+def _simulate_ancestral_mp(state, timepoints, variables, rowids, targets,
+        constraints, parents, variable_to_index, nsamples):
+    """Simulate timepoints and variables ancestrally (multiple samples).
+    :type constraints: object
+    """
     return [
         _simulate_ancestral_one(
             state, timepoints, variables, rowids, targets, constraints, parents,
             variable_to_index)
-        for _i in xrange(nsamples)
+        for _i in range(nsamples)
     ]
 
 
